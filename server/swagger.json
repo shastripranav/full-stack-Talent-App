@@ -1,0 +1,156 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Assessment API",
+    "version": "1.0.0",
+    "description": "API for creating and submitting assessments"
+  },
+  "paths": {
+    "/api/assessments/create": {
+      "post": {
+        "summary": "Create a new assessment",
+        "tags": ["Assessments"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAssessmentInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Assessment created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAssessmentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assessments/submit": {
+      "post": {
+        "summary": "Submit assessment answers",
+        "tags": ["Assessments"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitAssessmentInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Assessment submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitAssessmentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateAssessmentInput": {
+        "type": "object",
+        "required": ["name", "age", "location", "education", "language", "technology", "level"],
+        "properties": {
+          "name": { "type": "string" },
+          "age": { "type": "number" },
+          "location": { "type": "string" },
+          "education": { "type": "string" },
+          "language": { "type": "string" },
+          "technology": { "type": "string" },
+          "level": { "type": "string", "enum": ["Beginner", "Intermediate", "Expert"] }
+        }
+      },
+      "CreateAssessmentResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "assessmentId": { "type": "string" },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Question"
+            }
+          }
+        }
+      },
+      "SubmitAssessmentInput": {
+        "type": "object",
+        "required": ["assessmentId", "userAnswers"],
+        "properties": {
+          "assessmentId": { "type": "string" },
+          "userAnswers": {
+            "type": "array",
+            "items": { "type": "number" }
+          }
+        }
+      },
+      "SubmitAssessmentResponse": {
+        "type": "object",
+        "properties": {
+          "barChartData": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "category": { "type": "string" },
+                "correct": { "type": "number" },
+                "total": { "type": "number" }
+              }
+            }
+          },
+          "spiderChartData": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "competency": { "type": "string" },
+                "score": { "type": "number" }
+              }
+            }
+          },
+          "selected": { "type": "boolean" }
+        }
+      },
+      "Question": {
+        "type": "object",
+        "properties": {
+          "questionText": { "type": "string" },
+          "options": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "correctAnswer": { "type": "number" },
+          "bloomCategory": { "type": "string" },
+          "competency": { "type": "string" }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+.assessment-builder {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: Arial, sans-serif;
+}
+
+.loading {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #4a5568;
+  margin: 2rem 0;
+}
+
+.error {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #e53e3e;
+  margin: 2rem 0;
+  padding: 1rem;
+  background-color: #fff5f5;
+  border: 1px solid #fc8181;
+  border-radius: 0.25rem;
+}
