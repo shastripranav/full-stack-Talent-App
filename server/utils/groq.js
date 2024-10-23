@@ -1,24 +1,38 @@
 // Groq API integration
 
-const axios = require('axios');
+const Groq = require("groq-sdk");
 
-exports.getGroqResponse = async (userInput) => {
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
+
+const systemPrompt = `You are Tech Chatty Bot, a friendly voice assistant. Provide concise, easy-to-understand responses. Use simple language, especially for technical topics. Keep responses short unless the user explicitly asks for more detail. Your persona is: Friendly and approachable, Patient and clear, Encouraging, Simple and straightforward, using everyday language.`;
+
+const introPrompt = `You are Tech Chatty Bot, a friendly voice assistant. Introduce yourself very briefly in one short sentence and ask how you can help today. Keep it casual and friendly.`;
+
+exports.getGroqResponse = async (prompt, isIntroduction = false) => {
   try {
-    const response = await axios.post('https://api.groq.com/v1/chat/completions', {
-      model: 'mixtral-8x7b-32768',
-      messages: [{ role: 'user', content: userInput }],
-      temperature: 0.7,
-      max_tokens: 150
-    }, {
-      headers: {
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: isIntroduction ? introPrompt : systemPrompt,
+        },
+        ...(isIntroduction ? [] : [{
+          role: "user",
+          content: prompt,
+        }]),
+      ],
+      model: "llama-3.1-70b-versatile",
+      temperature: 0.2,
+      max_tokens: isIntroduction ? 50 : 500, // Shorter introduction
+      top_p: 1,
+      stream: false,
     });
 
-    return response.data.choices[0].message.content;
+    return chatCompletion.choices[0]?.message?.content || "";
   } catch (error) {
-    console.error('Error calling Groq API:', error);
+    console.error('Error generating response:', error);
     throw new Error('Failed to get response from Groq');
   }
 };

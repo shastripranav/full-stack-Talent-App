@@ -6,7 +6,7 @@ const errorHandler = require('./middleware/error');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger.json');
 const cors = require('cors');
-const voiceAssistantRoutes = require('./routes/voiceassistant');
+const voiceAssistantRoutes = require('./routes/voiceAssistant'); // Capital 'A'
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,6 +30,11 @@ const checkAndCreateCollections = async () => {
       console.log('Assessments collection created');
     }
 
+    if (!collectionNames.includes('voicechats')) {
+      await mongoose.connection.createCollection('voicechats');
+      console.log('Voice Chats collection created');
+    }
+
     console.log('All necessary collections are present');
   } catch (error) {
     console.error('Error checking/creating collections:', error);
@@ -39,6 +44,7 @@ const checkAndCreateCollections = async () => {
 // Middleware
 app.use(cors()); // Enable CORS for all routes
 app.use(express.json());
+app.use(express.raw({type: 'application/octet-stream', limit: '1mb'})); // Add this line
 
 // Routes
 app.use('/api', require('./routes/auth'));
@@ -51,6 +57,13 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Error Handler Middleware
 app.use(errorHandler);
+
+// Add this after your routes are registered
+app.use((req, res, next) => {
+  console.log('Request URL:', req.url);
+  console.log('Registered Routes:', app._router.stack.filter(r => r.route).map(r => r.route.path));
+  next();
+});
 
 mongoose.connection.once('open', () => {
   console.log('Connected to MongoDB');

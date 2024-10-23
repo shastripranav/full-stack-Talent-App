@@ -1,31 +1,33 @@
 // Deepgram API integration
 
 const { Deepgram } = require('@deepgram/sdk');
+const fetch = require('node-fetch');
+
+const DEEPGRAM_URL = "https://api.deepgram.com/v1/speak?model=aura-asteria-en";
 
 const deepgram = new Deepgram(process.env.DEEPGRAM_API_KEY);
 
 exports.textToSpeech = async (text) => {
   try {
-    const response = await deepgram.transcription.preRecorded(
-      {
-        buffer: Buffer.from(text),
-        mimetype: 'text/plain',
+    const payload = JSON.stringify({ text });
+
+    const response = await fetch(DEEPGRAM_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${process.env.DEEPGRAM_API_KEY}`,
+        "Content-Type": "application/json",
       },
-      {
-        smart_format: true,
-        model: 'general',
-        language: 'en-US',
-        tier: 'enhanced',
-      }
-    );
+      body: payload,
+    });
 
-    // Note: This is a placeholder. Deepgram doesn't currently offer TTS.
-    // You'll need to replace this with actual TTS API call when available.
-    const audioData = 'base64_encoded_audio_data';
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-    return audioData;
+    const audioBuffer = await response.buffer();
+    return audioBuffer.toString('base64');
   } catch (error) {
-    console.error('Error calling Deepgram API:', error);
+    console.error('Error synthesizing speech:', error);
     throw new Error('Failed to convert text to speech');
   }
 };

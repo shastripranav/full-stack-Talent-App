@@ -1,26 +1,39 @@
 import React, { useState, useContext, useEffect } from 'react';
 import styled from 'styled-components';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Removed useLocation
 import { AuthContext } from '../contexts/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import AssessmentQuestions from './AssessmentQuestions';
+import VoiceAssistant from './VoiceAssistant';
 
 const Dashboard = () => {
   const { user, logout, updateUser } = useContext(AuthContext);
   const [profileImage, setProfileImage] = useState(user?.profilePicture || null);
   const [showQuestions, setShowQuestions] = useState(false);
   const [selectedAssessment, setSelectedAssessment] = useState(null);
+  const [showVoiceAssistant, setShowVoiceAssistant] = useState(false);
+  const [showHome, setShowHome] = useState(true); // New state for home view
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState(''); // New state for dropdown
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
-    if (!user) {
+    // Check for token in localStorage
+    const token = localStorage.getItem('token');
+    if (!token) {
       navigate('/login');
-    } else if (user.assessmentsTaken && user.assessmentsTaken.length > 0) {
+      return;
+    }
+
+    // If user data is not available, try to fetch it
+    if (!user) {
+      // You might need to implement this function in your AuthContext
+      updateUser();
+    } else if (user.assessmentsTaken && user.assessmentsTaken.length > 0 && showHome) {
+      // Only set the latest assessment when showing home
       setSelectedAssessment(user.assessmentsTaken[user.assessmentsTaken.length - 1]);
     }
-  }, [user, navigate]);
+  }, [user, navigate, showHome]);
 
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
@@ -52,14 +65,25 @@ const Dashboard = () => {
       .toUpperCase();
   };
 
-  const toggleQuestions = () => {
-    setShowQuestions(!showQuestions);
+  const handleAssessmentChange = (event) => {
+    setSelectedAssessmentId(event.target.value);
   };
 
-  const handleAssessmentChange = (event) => {
-    const selectedId = event.target.value;
-    const assessment = user.assessmentsTaken.find(a => a._id === selectedId);
-    setSelectedAssessment(assessment);
+  const handleAssessmentSelect = () => {
+    if (selectedAssessmentId) {
+      const assessment = user.assessmentsTaken.find(a => a._id === selectedAssessmentId);
+      setSelectedAssessment(assessment);
+      setShowHome(false);
+      setShowVoiceAssistant(false);
+    }
+  };
+
+  const handleHomeClick = () => {
+    setShowHome(true);
+    setShowVoiceAssistant(false);
+    if (user?.assessmentsTaken?.length > 0) {
+      setSelectedAssessment(user.assessmentsTaken[user.assessmentsTaken.length - 1]);
+    }
   };
 
   const renderBarChart = () => {
@@ -133,16 +157,35 @@ const Dashboard = () => {
           </UploadButton>
         </ProfileSection>
         <NavMenu>
-          <NavItem to="/dashboard" $active={true}>Home</NavItem>
+          <NavItem as="button" onClick={handleHomeClick} $active={showHome}>Home</NavItem>
           <NavItem to="/assessment">New Assessment</NavItem>
           <AssessmentSelectorLabel>Past Assessments:</AssessmentSelectorLabel>
-          <AssessmentSelector onChange={handleAssessmentChange}>
-            {user?.assessmentsTaken?.map((assessment) => (
-              <option key={assessment._id} value={assessment._id}>
-                {assessment.technology} - {new Date(assessment.createdAt).toLocaleDateString()}
-              </option>
-            ))}
-          </AssessmentSelector>
+          <AssessmentSelectorWrapper>
+            <AssessmentSelector 
+              value={selectedAssessmentId} 
+              onChange={handleAssessmentChange}
+            >
+              <option value="">Select Assessment</option>
+              {user?.assessmentsTaken?.map((assessment) => (
+                <option key={assessment._id} value={assessment._id}>
+                  {assessment.technology} - {new Date(assessment.createdAt).toLocaleDateString()}
+                </option>
+              ))}
+            </AssessmentSelector>
+            <GoButton 
+              onClick={handleAssessmentSelect}
+              disabled={!selectedAssessmentId}
+            >
+              Go
+            </GoButton>
+          </AssessmentSelectorWrapper>
+          <VoiceAssistantButton onClick={() => {
+            setShowVoiceAssistant(!showVoiceAssistant);
+            setShowHome(false);
+          }}>
+            <BotIcon>🤖</BotIcon>
+            Chat with TechBot
+          </VoiceAssistantButton>
           <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
         </NavMenu>
       </Sidebar>
@@ -151,31 +194,37 @@ const Dashboard = () => {
           <Greeting>Hello, {user?.name || 'User'}</Greeting>
           <SubGreeting>Welcome to your dashboard</SubGreeting>
         </Header>
-        <ActivitySection>
-          <SectionTitle>Recent Activity</SectionTitle>
-          <ActivityItem>Last Login: {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A'}</ActivityItem>
-          <ActivityItem>Selected Assessment Technology: {selectedAssessment?.technology || 'N/A'}</ActivityItem>
-          <ActivityItem>Selected Assessment Level: {selectedAssessment?.level || 'N/A'}</ActivityItem>
-          <ActivityItem>Selected Assessment Date: {selectedAssessment?.createdAt ? new Date(selectedAssessment.createdAt).toLocaleString() : 'N/A'}</ActivityItem>
-        </ActivitySection>
-        {renderResultSummary()}
-        <ChartSection>
-          <SectionTitle>Selected Assessment Results</SectionTitle>
-          <ChartContainer>
-            {renderBarChart()}
-          </ChartContainer>
-          <ChartContainer>
-            {renderRadarChart()}
-          </ChartContainer>
-        </ChartSection>
-        <AdvancedButton onClick={() => setShowQuestions(!showQuestions)}>
-          {showQuestions ? 'Hide Questions' : 'Show Questions'}
-        </AdvancedButton>
-        {showQuestions && selectedAssessment && (
-          <FloatingFrame>
-            <CloseButton onClick={() => setShowQuestions(false)}>&times;</CloseButton>
-            <AssessmentQuestions data={selectedAssessment} />
-          </FloatingFrame>
+        {!showVoiceAssistant ? (
+          <>
+            <ActivitySection>
+              <SectionTitle>Recent Activity</SectionTitle>
+              <ActivityItem>Last Login: {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A'}</ActivityItem>
+              <ActivityItem>Selected Assessment Technology: {selectedAssessment?.technology || 'N/A'}</ActivityItem>
+              <ActivityItem>Selected Assessment Level: {selectedAssessment?.level || 'N/A'}</ActivityItem>
+              <ActivityItem>Selected Assessment Date: {selectedAssessment?.createdAt ? new Date(selectedAssessment.createdAt).toLocaleString() : 'N/A'}</ActivityItem>
+            </ActivitySection>
+            {renderResultSummary()}
+            <ChartSection>
+              <SectionTitle>Selected Assessment Results</SectionTitle>
+              <ChartContainer>
+                {renderBarChart()}
+              </ChartContainer>
+              <ChartContainer>
+                {renderRadarChart()}
+              </ChartContainer>
+            </ChartSection>
+            <AdvancedButton onClick={() => setShowQuestions(!showQuestions)}>
+              {showQuestions ? 'Hide Questions' : 'Show Questions'}
+            </AdvancedButton>
+            {showQuestions && selectedAssessment && (
+              <FloatingFrame>
+                <CloseButton onClick={() => setShowQuestions(false)}>&times;</CloseButton>
+                <AssessmentQuestions data={selectedAssessment} />
+              </FloatingFrame>
+            )}
+          </>
+        ) : (
+          <VoiceAssistant onClose={() => setShowVoiceAssistant(false)} />
         )}
       </MainContent>
     </DashboardContainer>
@@ -441,10 +490,35 @@ const AssessmentSelectorLabel = styled.label`
   font-weight: bold;
 `;
 
-const AssessmentSelector = styled.select`
-  width: 100%;
-  padding: 10px;
+const AssessmentSelectorWrapper = styled.div`
+  display: flex;
+  gap: 10px;
   margin-bottom: 10px;
+`;
+
+const GoButton = styled.button`
+  background-color: #4A3CDB;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: #3c31b0;
+  }
+`;
+
+const AssessmentSelector = styled.select`
+  flex: 1;
+  padding: 10px;
   border-radius: 4px;
   border: 1px solid #ddd;
 `;
@@ -462,6 +536,42 @@ const SummaryItem = styled.p`
   margin: 10px 0;
   display: flex;
   justify-content: space-between;
+`;
+
+const ContentWrapper = styled.div`
+  display: flex;
+  gap: 20px;
+`;
+
+const LeftSection = styled.div`
+  flex: 1;
+`;
+
+const RightSection = styled.div`
+  width: 300px;
+`;
+
+const VoiceAssistantButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #4A3CDB;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-top: 10px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #3c31b0;
+  }
+`;
+
+const BotIcon = styled.span`
+  font-size: 1.2rem;
 `;
 
 export default Dashboard;
