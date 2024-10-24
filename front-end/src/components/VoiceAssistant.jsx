@@ -2,27 +2,29 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import styled from 'styled-components';
 import { AuthContext } from '../contexts/AuthContext';
 import api from '../api';
+import marked from 'marked';
 
-const VoiceAssistant = ({ onClose }) => {
+const VoiceAssistant = ({ onClose, chatHistory }) => {
   const { user } = useContext(AuthContext);
   const [state, setState] = useState({
     isRecording: false,
     isProcessing: false,
     isBotSpeaking: false,
-    messages: [],
+    messages: chatHistory || [],
     error: null,
     currentBotMessage: '',
     introductionDone: false,
-    conversationStarted: false
+    conversationStarted: chatHistory.length > 0,
+    greetingPlayed: false
   });
   
-  const recognitionRef = useRef(null);
+  const [inputText, setInputText] = useState('');
   const chatWindowRef = useRef(null);
   const audioRef = useRef(new Audio());
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const hasFetchedGreeting = useRef(false);
 
-  // Define handleError first since it's used in other functions
   const handleError = (error) => {
     let errorMessage = "An error occurred";
     let canRetry = true;
@@ -57,8 +59,14 @@ const VoiceAssistant = ({ onClose }) => {
 
   const startConversation = async () => {
     try {
-      setState(prev => ({ ...prev, conversationStarted: true }));
-      // Updated API call to match the specified format
+      if (hasFetchedGreeting.current) return;
+
+      setState(prev => ({ 
+        ...prev, 
+        conversationStarted: true,
+        greetingPlayed: true
+      }));
+
       const response = await api.get('/voiceassistant/greeting', {
         headers: {
           'x-auth-token': localStorage.getItem('token'),
@@ -66,65 +74,145 @@ const VoiceAssistant = ({ onClose }) => {
         }
       });
       
-      // Check for the expected response format
       if (response.data.text && response.data.audio && response.data.isIntroduction) {
-        addMessage('bot', response.data.text);
-        await playAudio(response.data.audio);
+        await playAudioWithText(response.data.text, response.data.audio);
         setState(prev => ({ ...prev, introductionDone: true }));
       }
+
+      hasFetchedGreeting.current = true;
     } catch (error) {
       handleError(error);
     }
   };
 
-  const playAudio = async (base64Audio) => {
+  const playAudioWithText = async (text, base64Audio) => {
     try {
-      setState(prev => ({ ...prev, isBotSpeaking: true }));
+      setState(prev => ({ 
+        ...prev, 
+        isBotSpeaking: true,
+        currentBotMessage: ''
+      }));
+      
+      addMessage('bot', text);
+      
       const audioData = `data:audio/wav;base64,${base64Audio}`;
       audioRef.current = new Audio(audioData);
+      
+      const words = text.split(' ');
+      let currentTextLocal = '';
+      
+      audioRef.current.onplay = () => {
+        let wordIndex = 0;
+        const intervalId = setInterval(() => {
+          if (wordIndex < words.length) {
+            currentTextLocal += ' ' + words[wordIndex];
+            setState(prev => ({
+              ...prev,
+              currentBotMessage: currentTextLocal.trim()
+            }));
+            wordIndex++;
+          } else {
+            clearInterval(intervalId);
+          }
+        }, audioRef.current.duration * 1000 / words.length);
+      };
+
       audioRef.current.onended = () => {
         setState(prev => ({ ...prev, isBotSpeaking: false }));
       };
+
       await audioRef.current.play();
     } catch (error) {
       handleError(error);
+      setState(prev => ({ ...prev, isBotSpeaking: false }));
     }
   };
 
-  const startRecording = async () => {
-    try {
-      if (!mediaRecorderRef.current) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorderRef.current = new MediaRecorder(stream);
-      }
+  const startRecording = () => {
+    if ('MediaRecorder' in window) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          const mediaRecorder = new MediaRecorder(stream);
+          mediaRecorderRef.current = mediaRecorder;
+          audioChunksRef.current = [];
 
-      audioChunksRef.current = [];
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-      mediaRecorderRef.current.onstop = processRecording;
-      mediaRecorderRef.current.start();
-      setState(prev => ({ ...prev, isRecording: true, error: null }));
-    } catch (error) {
-      handleError(error);
+          mediaRecorder.addEventListener("dataavailable", event => {
+            audioChunksRef.current.push(event.data);
+          });
+
+          mediaRecorder.addEventListener("stop", async () => {
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+            setState(prev => ({ ...prev, isProcessing: true }));
+
+            try {
+              const arrayBuffer = await audioBlob.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+
+              const response = await api.post('/voiceassistant/process', 
+                buffer,
+                {
+                  headers: {
+                    'x-auth-token': localStorage.getItem('token'),
+                    'Content-Type': 'application/octet-stream'
+                  }
+                }
+              );
+
+              const { userText, botText, audio } = response.data;
+
+              if (userText) {
+                addMessage('user', userText);
+              }
+              if (botText && audio) {
+                await playAudioWithText(botText, audio);
+              }
+            } catch (error) {
+              handleError(error);
+            } finally {
+              setState(prev => ({ ...prev, isProcessing: false }));
+            }
+          });
+
+          mediaRecorder.start();
+          setState(prev => ({ ...prev, isRecording: true, error: null }));
+        })
+        .catch(error => {
+          handleError(error);
+        });
+    } else {
+      handleError(new Error('MediaRecorder is not supported in this browser'));
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       mediaRecorderRef.current.stop();
       setState(prev => ({ ...prev, isRecording: false }));
     }
   };
 
-  const processRecording = async () => {
-    setState(prev => ({ ...prev, isProcessing: true }));
+  const toggleRecording = () => {
+    if (state.isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const handleInputChange = (event) => {
+    setInputText(event.target.value);
+  };
+
+  const handleInputSubmit = async (event) => {
+    event.preventDefault();
+    if (inputText.trim() === '') return;
+
+    addMessage('user', inputText);
+    setInputText(''); // Clear the input field immediately after sending
+
     try {
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-      const base64Audio = await blobToBase64(audioBlob);
-      
-      const response = await api.post('/voiceassistant/process', 
-        { audio: base64Audio },
+      const response = await api.post('/voiceassistant/process-text', 
+        { text: inputText },
         {
           headers: {
             'x-auth-token': localStorage.getItem('token'),
@@ -133,50 +221,27 @@ const VoiceAssistant = ({ onClose }) => {
         }
       );
 
-      // Add user's transcribed text to messages
-      if (response.data.userText) {
-        addMessage('user', response.data.userText);
-      }
+      const { botText, audio } = response.data;
 
-      // Add bot's response and play audio in sequence
-      if (response.data.botText && response.data.audio) {
-        addMessage('bot', response.data.botText);
-        await playAudio(response.data.audio);
+      if (botText && audio) {
+        await playAudioWithText(botText, audio);
       }
     } catch (error) {
       handleError(error);
-    } finally {
-      setState(prev => ({ ...prev, isProcessing: false }));
-    }
-  };
-
-  const blobToBase64 = (blob) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  };
-
-  // Add toggleRecording function
-  const toggleRecording = async () => {
-    if (state.isRecording) {
-      stopRecording();
-    } else {
-      await startRecording();
     }
   };
 
   useEffect(() => {
-    startConversation();
+    if (!hasFetchedGreeting.current && state.messages.length === 0) {
+      startConversation();
+    }
     return () => {
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current.stop();
       }
       audioRef.current.pause();
     };
-  }, []);
+  }, []); // Empty dependency array to ensure it runs only once
 
   if (!state.conversationStarted) {
     return (
@@ -196,14 +261,17 @@ const VoiceAssistant = ({ onClose }) => {
       
       <ChatWindow ref={chatWindowRef} role="log" aria-live="polite">
         {state.messages.map((message, index) => (
-          <MessageBubble 
-            key={index} 
-            $sender={message.sender}
-            role="article"
-            aria-label={`${message.sender} message`}
-          >
-            {message.text}
-          </MessageBubble>
+          <MessageContainer key={index} $sender={message.sender}>
+            <Avatar $sender={message.sender}>
+              {message.sender === 'bot' ? '🤖' : '😊'}
+            </Avatar>
+            <MessageBubble 
+              $sender={message.sender}
+              role="article"
+              aria-label={`${message.sender} message`}
+              dangerouslySetInnerHTML={{ __html: marked(message.text) }} // Render markdown
+            />
+          </MessageContainer>
         ))}
         {state.error && (
           <ErrorMessage role="alert">
@@ -226,6 +294,18 @@ const VoiceAssistant = ({ onClose }) => {
         >
           🎤
         </MicButton>
+        <ChatForm onSubmit={handleInputSubmit}>
+          <ChatInput 
+            type="text" 
+            value={inputText} 
+            onChange={handleInputChange} 
+            placeholder="Type your message..."
+            disabled={state.isProcessing || state.isBotSpeaking}
+          />
+          <SendButton type="submit" disabled={state.isProcessing || state.isBotSpeaking || inputText.trim() === ''}>
+            Send
+          </SendButton>
+        </ChatForm>
         <StatusBar>
           {state.isRecording ? "Recording..." : 
            state.isProcessing ? "Processing..." :
@@ -279,11 +359,23 @@ const ChatWindow = styled.div`
   background-color: #f5f5f5;
 `;
 
+const MessageContainer = styled.div`
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  justify-content: ${props => props.$sender === 'bot' ? 'flex-start' : 'flex-end'};
+`;
+
+const Avatar = styled.div`
+  font-size: 1.5rem;
+  margin-right: ${props => props.$sender === 'bot' ? '10px' : '0'};
+  margin-left: ${props => props.$sender === 'user' ? '10px' : '0'};
+`;
+
 const MessageBubble = styled.div`
   max-width: 70%;
   padding: 12px 16px;
   border-radius: 15px;
-  margin-bottom: 10px;
   ${props => props.$sender === 'bot' 
     ? `
       background-color: #4A3CDB;
@@ -342,6 +434,41 @@ const MicButton = styled.button`
   }
 `;
 
+const ChatForm = styled.form`
+  display: flex;
+  flex: 1;
+  align-items: center;
+`;
+
+const ChatInput = styled.input`
+  flex: 1;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  margin-right: 10px;
+  font-size: 1rem;
+`;
+
+const SendButton = styled.button`
+  background-color: #4A3CDB;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: #3c31b0;
+  }
+`;
+
 const ErrorMessage = styled.div`
   background-color: #ffebee;
   color: #c62828;
@@ -361,7 +488,6 @@ const RetryButton = styled.button`
   cursor: pointer;
 `;
 
-// Add new styled components
 const WelcomeScreen = styled.div`
   display: flex;
   flex-direction: column;

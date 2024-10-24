@@ -6,7 +6,7 @@ const errorHandler = require('./middleware/error');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger.json');
 const cors = require('cors');
-const voiceAssistantRoutes = require('./routes/voiceAssistant'); // Capital 'A'
+const voiceAssistantRoutes = require('./routes/voiceAssistant');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -42,15 +42,17 @@ const checkAndCreateCollections = async () => {
 };
 
 // Middleware
-app.use(cors()); // Enable CORS for all routes
-app.use(express.json());
-app.use(express.raw({type: 'application/octet-stream', limit: '1mb'})); // Add this line
+app.use(cors());
+
+// Increase payload size limits
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.raw({ type: 'application/octet-stream', limit: '50mb' }));
 
 // Routes
 app.use('/api', require('./routes/auth'));
 app.use('/api/assessments', require('./routes/assessments'));
 app.use('/api/voiceassistant', voiceAssistantRoutes);
-// ... other routes
 
 // Swagger API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -58,7 +60,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // Error Handler Middleware
 app.use(errorHandler);
 
-// Add this after your routes are registered
+// Debug middleware
 app.use((req, res, next) => {
   console.log('Request URL:', req.url);
   console.log('Registered Routes:', app._router.stack.filter(r => r.route).map(r => r.route.path));

@@ -1,0 +1,367 @@
+.DashboardContainer {
+  display: flex;
+  height: 100vh;
+  background-color: #F0F0F7;
+}
+
+.Sidebar {
+  width: 250px;
+  background-color: #FFFFFF;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ProfileSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.ProfileImage {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+.UploadButton {
+  background-color: #4A3CDB;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.UploadButton input {
+  display: none;
+}
+
+.NavMenu {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.NavItem {
+  color: #333;
+  text-decoration: none;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  display: block;
+}
+
+.NavItem.active {
+  color: #4A3CDB;
+  font-weight: bold;
+}
+
+.NavItem:hover {
+  color: #4A3CDB;
+}
+
+.MainContent {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.Header {
+  margin-bottom: 20px;
+}
+
+.Greeting {
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.SubGreeting {
+  font-size: 1.5rem;
+  color: #4A3CDB;
+}
+
+.ContentSection {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.SectionTitle {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.ActivityList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ActivityItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: #F8F8F8;
+  border-radius: 5px;
+}
+
+.ActivityName {
+  flex: 1;
+}
+
+.ActivityDate {
+  font-size: 0.9rem;
+  color: #777;
+}
+
+.UserName {
+  font-size: 1.2rem;
+  color: #333;
+  margin: 0.5rem 0;
+  text-align: center;
+}
+
+.LastLogin {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.UserInfo {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.ProfileInitials {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: #4A3CDB;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.UpdateDetailsButton {
+  background-color: #4A3CDB;
+  color: white;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}
+
+.ErrorMessage {
+  color: red;
+  text-align: center;
+  font-size: 1.2rem;
+  margin-top: 2rem;
+}
+
+.ActivitySection {
+  margin-bottom: 2rem;
+}
+
+.ChartSection {
+  margin-bottom: 2rem;
+}
+
+.ChartContainer {
+  margin-bottom: 2rem;
+}
+
+.AdvancedButton {
+  background-color: #4A3CDB;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.FloatingFrame {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  max-width: 800px;
+  height: 80%;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.CloseButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.ChatOptionsModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.ChatOptionButton {
+  background-color: #4A3CDB;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.ChatOptionButton:hover {
+  background-color: #3c31b0;
+}
+
+.QuestionItem {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.QuestionText {
+  font-weight: bold;
+}
+
+.SelectedAnswer {
+  color: #4A3CDB;
+}
+
+.CorrectAnswer {
+  color: green;
+  font-weight: bold;
+}
+
+.VoiceAssistantButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #4A3CDB;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-top: 10px;
+  transition: background-color 0.2s;
+}
+
+.VoiceAssistantButton:hover {
+  background-color: #3c31b0;
+}
+
+.BotIcon {
+  font-size: 1.2rem;
+}
+
+.LogoutButton {
+  background-color: #f44336;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+}
+
+.LogoutButton:hover {
+  background-color: #d32f2f;
+}
+
+.CollapseIcon {
+  cursor: pointer;
+  font-size: 1.2rem;
+  margin-left: 10px;
+  transition: transform 0.2s;
+}
+
+.CollapseIcon.collapsed {
+  transform: rotate(180deg);
+}
+
+.AssessmentSelectorWrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.AssessmentSelector {
+  flex: 1;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.AssessmentSelector:focus {
+  border-color: #4A3CDB;
+  outline: none;
+}
+
+.GoButton {
+  background-color: #4A3CDB;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: #3c31b0;
+  }
+}

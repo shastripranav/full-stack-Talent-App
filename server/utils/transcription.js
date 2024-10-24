@@ -7,9 +7,12 @@ const groq = new Groq({
 
 exports.transcribeAudio = async (audioBuffer) => {
   try {
+    // Create a File object from the audioBuffer
+    const file = new File([audioBuffer], "audio.wav", { type: "audio/wav" });
+
     // Create a transcription job
     const transcriptions = await groq.audio.transcriptions.create({
-      file: audioBuffer,
+      file: file,
       model: "whisper-large-v3-turbo",
       prompt: "Transcribe the following audio",
       response_format: "json",
