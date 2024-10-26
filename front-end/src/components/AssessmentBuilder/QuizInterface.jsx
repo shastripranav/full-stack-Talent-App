@@ -36,8 +36,12 @@ const QuizInterface = ({ quizData, assessmentId, onSubmit }) => {
     if (isSubmitted) return; // Prevent multiple submissions
     
     try {
+      if (!assessmentId) {
+        throw new Error('Assessment ID is missing');
+      }
+      
       const token = localStorage.getItem('token');
-      const response = await api.post('/assessments/submit', 
+      const response = await api.post(`/assessments/submit`, 
         {
           assessmentId: assessmentId,
           userAnswers: answers
@@ -50,6 +54,8 @@ const QuizInterface = ({ quizData, assessmentId, onSubmit }) => {
         }
       );
       setIsSubmitted(true);
+      clearInterval(Number(localStorage.getItem('assessmentTimerId'))); // Clear the timer
+      localStorage.removeItem('assessmentTimerId'); // Remove the timer ID from localStorage
       setTimeout(() => {
         onSubmit(response.data);
       }, 3000); // Show success message for 3 seconds before redirecting

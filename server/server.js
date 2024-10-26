@@ -7,6 +7,7 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger.json');
 const cors = require('cors');
 const voiceAssistantRoutes = require('./routes/voiceAssistant');
+const courseRoutes = require('./routes/course');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,11 +36,29 @@ const checkAndCreateCollections = async () => {
       console.log('Voice Chats collection created');
     }
 
+    if (!collectionNames.includes('courserequests')) {
+      await mongoose.connection.createCollection('courserequests');
+      console.log('Course Requests collection created');
+    }
+
+    if (!collectionNames.includes('generatedcourses')) {
+      await mongoose.connection.createCollection('generatedcourses');
+      console.log('Generated Courses collection created');
+    }
+
     console.log('All necessary collections are present');
   } catch (error) {
     console.error('Error checking/creating collections:', error);
   }
 };
+
+// Middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log('Request Headers:', req.headers);
+  console.log('Request Body:', req.body);
+  next();
+});
 
 // Middleware
 app.use(cors());
@@ -53,6 +72,7 @@ app.use(express.raw({ type: 'application/octet-stream', limit: '50mb' }));
 app.use('/api', require('./routes/auth'));
 app.use('/api/assessments', require('./routes/assessments'));
 app.use('/api/voiceassistant', voiceAssistantRoutes);
+app.use('/api/course', courseRoutes);
 
 // Swagger API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

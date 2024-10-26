@@ -46,6 +46,10 @@ const SignupForm = () => {
     }
   };
 
+  const handleClose = () => {
+    navigate('/'); // Navigate to home page instead of login
+  };
+
   if (isSuccess) {
     return (
       <ModalOverlay>
@@ -59,7 +63,7 @@ const SignupForm = () => {
   return (
     <ModalOverlay>
       <ModalContent>
-        <CloseButton onClick={() => navigate('/login')}>&times;</CloseButton>
+        <CloseButton onClick={handleClose}>&times;</CloseButton>
         <FormContainer>
           <ImageSection>
             <Logo>TalentHarness</Logo>

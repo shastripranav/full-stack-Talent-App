@@ -146,3 +146,28 @@ exports.submitAssessment = async (req, res) => {
         res.status(500).json({ message: 'Error submitting assessment' });
     }
 };
+
+exports.getAssessmentResult = async (req, res) => {
+  try {
+    const assessmentId = req.params.id;
+    const assessment = await Assessment.findById(assessmentId);
+
+    if (!assessment) {
+      return res.status(404).json({ message: 'Assessment not found' });
+    }
+
+    if (!assessment.submitted) {
+      return res.status(400).json({ message: 'Assessment has not been submitted yet' });
+    }
+
+    res.json({
+      score: assessment.score,
+      totalQuestions: assessment.questions.length,
+      percentageScore: (assessment.score / assessment.questions.length) * 100,
+      result: assessment.result
+    });
+  } catch (error) {
+    console.error('Error retrieving assessment result:', error);
+    res.status(500).json({ message: 'Error retrieving assessment result' });
+  }
+};

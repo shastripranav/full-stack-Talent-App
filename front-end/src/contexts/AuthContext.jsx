@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [lastAssessment, setLastAssessment] = useState(localStorage.getItem('lastAssessment'));
+
   useEffect(() => {
     if (token) {
       fetchUserDetails();
@@ -27,24 +27,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = (tokenValue, userData, lastAssessment) => {
+  const login = (tokenValue, userData) => {
     localStorage.setItem('token', tokenValue);
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('lastAssessment', JSON.stringify(lastAssessment));
     setToken(tokenValue);
     setUser(userData);
-    setLastAssessment(lastAssessment);
     setIsAuthenticated(true);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('lastAssessment');
     setToken(null);
     setUser(null);
-    setLastAssessment(null);
     setIsAuthenticated(false);
+  };
+
+  const refreshUserData = async () => {
+    await fetchUserDetails();
   };
 
   const updateUser = async (updatedDetails) => {
@@ -62,7 +60,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, updateUser, refreshUserData }}>
       {children}
     </AuthContext.Provider>
   );

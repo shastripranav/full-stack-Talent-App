@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
@@ -7,9 +7,10 @@ import AssessmentQuestions from './AssessmentQuestions';
 import VoiceAssistant from './VoiceAssistant';
 import api from '../api'; // Import the api instance
 import './Dashboard.css';
+import styled from 'styled-components';
 
 const Dashboard = () => {
-  const { user, logout, updateUser } = useContext(AuthContext);
+  const { user, logout, updateUser, refreshUserData } = useContext(AuthContext);
   const [profileImage, setProfileImage] = useState(user?.profilePicture || null);
   const [showQuestions, setShowQuestions] = useState(false);
   const [selectedAssessment, setSelectedAssessment] = useState(null);
@@ -20,20 +21,20 @@ const Dashboard = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [activityCollapsed, setActivityCollapsed] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
+    const fetchData = async () => {
+      if (location.state?.showLatestAssessment) {
+        await refreshUserData();
+      }
+      if (user?.assessmentsTaken?.length > 0) {
+        setSelectedAssessment(user.assessmentsTaken[user.assessmentsTaken.length - 1]);
+      }
+    };
 
-    if (!user) {
-      updateUser();
-    } else if (user.assessmentsTaken && user.assessmentsTaken.length > 0 && showHome) {
-      setSelectedAssessment(user.assessmentsTaken[user.assessmentsTaken.length - 1]);
-    }
-  }, [user, navigate, showHome, updateUser]);
+    fetchData();
+  }, [user, location.state, refreshUserData]);
 
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
@@ -157,7 +158,7 @@ const Dashboard = () => {
   };
 
   const renderResultSummary = () => {
-    if (!selectedAssessment) return null;
+    if (!selectedAssessment || !selectedAssessment.questions) return null;
 
     const totalQuestions = selectedAssessment.questions.length;
     const correctAnswers = selectedAssessment.score;
@@ -173,6 +174,15 @@ const Dashboard = () => {
         <p className="SummaryItem">Score: {scorePercentage.toFixed(2)}%</p>
       </div>
     );
+  };
+
+  const handleRefreshAssessments = async () => {
+    try {
+      await refreshUserData();
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      // Optionally, you can set an error state here to display to the user
+    }
   };
 
   return (
@@ -192,15 +202,18 @@ const Dashboard = () => {
         </div>
         <nav className="NavMenu">
           <button className={`NavItem ${showHome ? 'active' : ''}`} onClick={handleHomeClick}>Home</button>
+          <RefreshIcon onClick={handleRefreshAssessments}>Refresh Dashboard</RefreshIcon>
           <Link className="NavItem" to="/assessment">New Assessment</Link>
-          <label className="AssessmentSelectorLabel">Past Assessments:</label>
+          <div className="AssessmentSelectorLabel">
+            Past Assessments:
+          </div>
           <div className="AssessmentSelectorWrapper">
             <select 
               className="AssessmentSelector"
               value={selectedAssessmentId} 
               onChange={handleAssessmentChange}
             >
-              <option value="">Select Assessment</option>
+              <option key="default" value="">Select Assessment</option>
               {user?.assessmentsTaken?.map((assessment) => (
                 <option key={assessment._id} value={assessment._id}>
                   {assessment.technology} - {new Date(assessment.createdAt).toLocaleDateString()}
@@ -250,11 +263,13 @@ const Dashboard = () => {
             </section>
             {renderResultSummary()}
             <section className="ChartSection">
-              <h2 className="SectionTitle">Selected Assessment Results</h2>
+              <h2 className="SectionTitle">Assessment Results</h2>
               <div className="ChartContainer">
+                <h3>Performance by Bloom's Taxonomy</h3>
                 {renderBarChart()}
               </div>
               <div className="ChartContainer">
+                <h3>Competency Scores</h3>
                 {renderRadarChart()}
               </div>
             </section>
@@ -282,5 +297,14 @@ const Dashboard = () => {
     </div>
   );
 };
+
+const RefreshIcon = styled.span`
+  cursor: pointer;
+  margin-left: 5px;
+  font-size: 1rem;
+  &:hover {
+    opacity: 0.7;
+  }
+`;
 
 export default Dashboard;

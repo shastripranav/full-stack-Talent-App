@@ -42,7 +42,7 @@ const LoginForm = () => {
   };
 
   const handleClose = () => {
-    navigate('/');
+    navigate('/');  // Navigate to home page
   };
 
   const handleSwitchToSignup = () => {
@@ -120,6 +120,7 @@ const ModalContent = styled.div`
   overflow: hidden;
   width: 800px;
   max-width: 90%;
+  position: relative;
 `;
 
 const LoginSection = styled.div`
@@ -145,8 +146,14 @@ const CloseButton = styled.button`
   right: 10px;
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 2rem;
   cursor: pointer;
+  color: #333;
+  z-index: 10;
+  
+  &:hover {
+    color: #000;
+  }
 `;
 
 const Logo = styled.h1`

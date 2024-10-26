@@ -1,248 +1,183 @@
-import React from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import styled from 'styled-components';
-import { motion } from 'framer-motion';
-import { useInView } from 'react-intersection-observer';
+import './LandingPage.css';
 
-const AnimatedSection = ({ children, delay = 0 }) => {
-  const [ref, inView] = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 50 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-      transition={{ duration: 0.8, delay }}
-    >
-      {children}
-    </motion.div>
-  );
-};
+// Import all images
+import heroImage1 from '../images/Identify.png';
+import heroImage2 from '../images/Sculpt.png';
+import heroImage3 from '../images/Deliver.png';
+import assessmentImage from '../images/Digital.png';
+import resumeImage from '../images/Create_a_stylized_illustration_of_a_digital_resume.png';
+import chatbotImage from '../images/robot.png';
+import voiceImage from '../images/voice_chat.png';
+import courseImage from '../images/workspace.png';
+import imageGenImage from '../images/Studio.png';
 
 const LandingPage = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const featuresRef = useRef([]);
+  
+  const heroSlides = [
+    {
+      image: heroImage1,
+      title: "Identifying Talent",
+      description: "Focuses on the discovery and recognition of potential within a diverse pool."
+    },
+    {
+      image: heroImage2,
+      title: "Sculpting Talent",
+      description: "Emphasizes the development and refinement process, turning potential into excellence."
+    },
+    {
+      image: heroImage3,
+      title: "Delivering Talent",
+      description: "Highlights the presentation and integration of honed talent into the professional sphere."
+    }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1,
+    };
+
+    const observerCallback = (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+        } else {
+          entry.target.classList.remove('in-view');
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+
+    featuresRef.current.forEach((feature) => {
+      if (feature) observer.observe(feature);
+    });
+
+    return () => {
+      featuresRef.current.forEach((feature) => {
+        if (feature) observer.unobserve(feature);
+      });
+    };
+  }, []);
+
+  const features = [
+    {
+      title: "Assessment Building Capability",
+      description: "Create dynamic, AI-powered technical assessments tailored to any role or skill level. Transform your hiring process with precision and efficiency.",
+      image: assessmentImage,
+      alt: "Assessment Platform",
+      emoji: "🎯"
+    },
+    {
+      title: "Resume Analyser",
+      description: "Leverage advanced AI to scan and analyze resumes with unprecedented accuracy. Match candidates to roles with intelligent skill mapping and scoring.",
+      image: resumeImage,
+      alt: "Resume Analysis",
+      emoji: "📝"
+    },
+    {
+      title: "Technical Support Chat Bot",
+      description: "Your 24/7 technical companion for instant problem-solving and guidance. Powered by cutting-edge AI to provide accurate, contextual support.",
+      image: chatbotImage,
+      alt: "Chat Bot",
+      emoji: "🤖"
+    },
+    {
+      title: "Technical Voice Assistant",
+      description: "Experience hands-free technical assistance with our AI voice companion. Natural conversations meet technical expertise for seamless support.",
+      image: voiceImage,
+      alt: "Voice Assistant",
+      emoji: "🗣️"
+    },
+    {
+      title: "Training Course Outline Generator",
+      description: "Automatically generate comprehensive course outlines tailored to your needs. Transform learning objectives into structured, engaging curricula.",
+      image: courseImage,
+      alt: "Course Generator",
+      emoji: "📚"
+    },
+    {
+      title: "Image Generation Capability",
+      description: "Create stunning, relevant visuals for your learning content with AI. Transform ideas into engaging visual assets with a single prompt.",
+      image: imageGenImage,
+      alt: "Image Generation",
+      emoji: "🖼️"
+    }
+  ];
+
   return (
-    <Container>
-      <AnimatedSection>
-        <HeroSection>
-          <HeroContent>
-            <HeroTitle>Unleash Your Technical Potential</HeroTitle>
-            <HeroSubtitle>
-              Discover the power of talent fitment and sculpting in the tech industry
-            </HeroSubtitle>
-            <CTAButton>Get Started</CTAButton>
-          </HeroContent>
-        </HeroSection>
-      </AnimatedSection>
+    <div className="landing-container">
+      <section className="hero-section">
+        <div className="hero-carousel-container">
+          <div className="hero-carousel">
+            {heroSlides.map((slide, index) => (
+              <div 
+                key={index} 
+                className={`carousel-slide ${index === currentSlide ? 'active' : ''}`}
+              >
+                <div className="image-container">
+                  <img src={slide.image} alt={slide.title} />
+                </div>
+                <div className={`slide-content ${index === currentSlide ? 'active' : ''}`}>
+                  <h2 className="slide-title">{slide.title}</h2>
+                  <p className="slide-description">{slide.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-      <AnimatedSection delay={0.2}>
-        <IntroSection>
-          <SectionTitle>Elevate Your Tech Career</SectionTitle>
-          <SectionText>
-            TalentHarness helps you upskill, evaluate your talents, and identify the
-            perfect career pathway in the ever-evolving tech landscape.
-          </SectionText>
-        </IntroSection>
-      </AnimatedSection>
+      <section className="hero-content">
+        <h1 className="section-title">One home for all your learning and skills</h1>
+        <p className="section-description">
+          Create, discover, track and manage all of your learning and skills in one beautifully smart platform.
+        </p>
+        <Link to="/login" className="cta-button">Try it out</Link>
+      </section>
 
-      <AnimatedSection delay={0.4}>
-        <FeaturesSection>
-          <FeatureCard>
-            <FeatureIcon>🚀</FeatureIcon>
-            <FeatureTitle>Talent Upskilling</FeatureTitle>
-            <FeatureText>
-              Enhance your skills with personalized learning paths and resources.
-            </FeatureText>
-          </FeatureCard>
-          <FeatureCard>
-            <FeatureIcon>📊</FeatureIcon>
-            <FeatureTitle>Talent Evaluations</FeatureTitle>
-            <FeatureText>
-              Gain insights into your strengths and areas for improvement.
-            </FeatureText>
-          </FeatureCard>
-          <FeatureCard>
-            <FeatureIcon>🗺️</FeatureIcon>
-            <FeatureTitle>Pathway Identification</FeatureTitle>
-            <FeatureText>
-              Discover the best career paths tailored to your skills and aspirations.
-            </FeatureText>
-          </FeatureCard>
-        </FeaturesSection>
-      </AnimatedSection>
+      <section className="features-section">
+        {features.map((feature, index) => (
+          <div 
+            key={index} 
+            className={`feature-item ${index % 2 === 0 ? 'even' : 'odd'}`}
+            ref={el => featuresRef.current[index] = el}
+          >
+            <div className="feature-content">
+              <div className="feature-emoji">{feature.emoji}</div>
+              <h2 className="feature-title">{feature.title}</h2>
+              <p className="feature-description">{feature.description}</p>
+            </div>
+            <div className="feature-image-container">
+              <img src={feature.image} alt={feature.alt} className="feature-image" />
+            </div>
+          </div>
+        ))}
+      </section>
 
-      <AnimatedSection delay={0.6}>
-        <TestimonialsSection>
-          <SectionTitle>What Our Users Say</SectionTitle>
-          <TestimonialGrid>
-            <Testimonial>
-              <TestimonialText>
-                "TalentHarness helped me identify my strengths and land my dream job in AI!"
-              </TestimonialText>
-              <TestimonialAuthor>- Sarah K., Data Scientist</TestimonialAuthor>
-            </Testimonial>
-            <Testimonial>
-              <TestimonialText>
-                "The personalized learning paths were a game-changer for my career growth."
-              </TestimonialText>
-              <TestimonialAuthor>- Mike R., Full Stack Developer</TestimonialAuthor>
-            </Testimonial>
-          </TestimonialGrid>
-        </TestimonialsSection>
-      </AnimatedSection>
-
-      <AnimatedSection delay={0.8}>
-        <CTASection>
-          <CTATitle>Ready to Harness Your Potential?</CTATitle>
-          <CTAButton as={Link} to="/signup">Sign Up Now</CTAButton>
-        </CTASection>
-      </AnimatedSection>
-    </Container>
+      <section className="testimonials-section">
+        <h2>What Our Users Say</h2>
+        <div className="testimonial">
+          <p>"TalentHarness has revolutionized our learning and development process. It's intuitive, powerful, and exactly what we needed."</p>
+          <p className="testimonial-author">- John Doe, HR Director</p>
+        </div>
+        {/* Add more testimonials as needed */}
+      </section>
+    </div>
   );
 };
-
-// Add these styled component definitions
-const Container = styled.div`
-  font-family: 'Inter', sans-serif;
-  color: #1a202c;
-`;
-
-const HeroSection = styled.section`
-  background-color: #ebf8ff;
-  padding: 4rem 2rem;
-  text-align: center;
-`;
-
-const HeroContent = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
-`;
-
-const HeroTitle = styled.h2`
-  font-size: 3rem;
-  font-weight: bold;
-  margin-bottom: 1rem;
-  color: #2b6cb0;
-`;
-
-const HeroSubtitle = styled.p`
-  font-size: 1.25rem;
-  color: #4a5568;
-  margin-bottom: 2rem;
-`;
-
-const CTAButton = styled(Link)`
-  background-color: #4299e1;
-  color: white;
-  font-weight: bold;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 0.25rem;
-  font-size: 1rem;
-  cursor: pointer;
-  text-decoration: none;
-  transition: background-color 0.3s;
-  &:hover {
-    background-color: #2b6cb0;
-  }
-`;
-
-const IntroSection = styled.section`
-  padding: 4rem 2rem;
-  text-align: center;
-  background-color: #fff;
-`;
-
-const SectionTitle = styled.h3`
-  font-size: 2rem;
-  font-weight: bold;
-  margin-bottom: 1rem;
-  color: #2d3748;
-`;
-
-const SectionText = styled.p`
-  font-size: 1.125rem;
-  color: #4a5568;
-  max-width: 600px;
-  margin: 0 auto;
-`;
-
-const FeaturesSection = styled.section`
-  display: flex;
-  justify-content: space-around;
-  padding: 4rem 2rem;
-  background-color: #f7fafc;
-`;
-
-const FeatureCard = styled.div`
-  background-color: #fff;
-  padding: 2rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  max-width: 300px;
-`;
-
-const FeatureIcon = styled.div`
-  font-size: 3rem;
-  margin-bottom: 1rem;
-`;
-
-const FeatureTitle = styled.h4`
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-  color: #2d3748;
-`;
-
-const FeatureText = styled.p`
-  font-size: 1rem;
-  color: #4a5568;
-`;
-
-const TestimonialsSection = styled.section`
-  padding: 4rem 2rem;
-  background-color: #ebf8ff;
-  text-align: center;
-`;
-
-const TestimonialGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-top: 2rem;
-`;
-
-const Testimonial = styled.div`
-  background-color: #fff;
-  padding: 2rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-`;
-
-const TestimonialText = styled.p`
-  font-style: italic;
-  margin-bottom: 1rem;
-`;
-
-const TestimonialAuthor = styled.p`
-  font-weight: bold;
-  color: #2d3748;
-`;
-
-const CTASection = styled.section`
-  background-color: #4299e1;
-  color: white;
-  padding: 4rem 2rem;
-  text-align: center;
-`;
-
-const CTATitle = styled.h3`
-  font-size: 2rem;
-  font-weight: bold;
-  margin-bottom: 2rem;
-`;
 
 export default LandingPage;

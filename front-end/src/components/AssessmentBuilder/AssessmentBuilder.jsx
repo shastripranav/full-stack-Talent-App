@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserDetailsForm from './UserDetailsForm';
 import QuizInterface from './QuizInterface';
@@ -6,6 +6,7 @@ import ResultsDisplay from './ResultsDisplay';
 import api from '../../api';
 import styled from 'styled-components';
 import './AssessmentBuilder.css';
+import { AuthContext } from '../../contexts/AuthContext';
 
 const ASSESSMENT_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
 
@@ -19,6 +20,7 @@ const AssessmentBuilder = () => {
   const [isAssessmentCreated, setIsAssessmentCreated] = useState(false);
   const [isAssessmentStarted, setIsAssessmentStarted] = useState(false);
   const navigate = useNavigate();
+  const { refreshUserData } = useContext(AuthContext);
 
   const createAssessment = async (details) => {
     if (isAssessmentCreated) return; // Prevent multiple submissions
@@ -37,11 +39,12 @@ const AssessmentBuilder = () => {
           'x-auth-token': localStorage.getItem('token')
         }
       });
+      console.log(response.data);
       setQuizData(response.data.questions);
-      setAssessmentId(response.data._id);
+      setAssessmentId(response.data.assessmentId);
       setIsAssessmentCreated(true);
       setStep('quiz');
-      startAssessment(response.data._id);
+      startAssessment(assessmentId);
     } catch (err) {
       setError('Failed to create assessment. Please try again.');
     } finally {
@@ -69,23 +72,19 @@ const AssessmentBuilder = () => {
     setError(null);
     try {
       clearInterval(Number(localStorage.getItem('assessmentTimerId')));
-      // Submit the answers
-      await api.post(`/assessments/${assessmentId}/submit`, { userAnswers }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': localStorage.getItem('token')
-        }
-      });
-      // Fetch the results
-      const resultResponse = await api.get(`/assessments/${assessmentId}/result`, {
-        headers: {
-          'x-auth-token': localStorage.getItem('token')
-        }
-      });
+      localStorage.removeItem('assessmentTimerId');
+      
+      if (!assessmentId) {
+        throw new Error('Assessment ID is missing');
+      }
 
-      setQuizResults(resultResponse.data);
-      navigate('/dashboard', { state: { showResults: true, results: resultResponse.data } });
+      // Refresh user data to get the latest assessment
+      //await refreshUserData();
+
+      // Navigate to dashboard
+      navigate('/dashboard', { state: { showLatestAssessment: true } });
     } catch (err) {
+      console.error('Error submitting assessment:', err);
       setError('Failed to process results. Please try again.');
     } finally {
       setLoading(false);
