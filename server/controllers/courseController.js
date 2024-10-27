@@ -1,10 +1,8 @@
 const { generateCourseOutline } = require('../utils/chatgpt');
 const CourseRequest = require('../models/CourseRequest');
 const GeneratedCourse = require('../models/GeneratedCourse');
+const User = require('../models/User');
 
-exports.createCourse = async (req, res) => {
-  // Implementation for creating a course
-};
 
 exports.getCourse = async (req, res) => {
   try {
@@ -23,13 +21,20 @@ exports.getCourse = async (req, res) => {
 exports.generateCourseOutline = async (req, res) => {
   try {
     const { jobDescription, technologyStack, duration, trainingLevel } = req.body;
+    console.log('Received generateCourseOutline request:', req.body);
 
     // Validate inputs
     if (!jobDescription || !technologyStack || !duration || !trainingLevel) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return res.status(409).json({ error: 'All fields are required' });
     }
 
-    // Log the course request
+    // Validate trainingLevel
+    const validLevels = ['Beginner', 'Mid Management', 'C-Suite'];
+    if (!validLevels.includes(trainingLevel)) {
+      return res.status(402).json({ error: 'Invalid training level. Must be Beginner, Mid Management, or C-Suite' });
+    }
+
+    // Create and save the course request first
     const courseRequest = new CourseRequest({
       userId: req.user.id,
       jobDescription,
@@ -38,9 +43,11 @@ exports.generateCourseOutline = async (req, res) => {
       trainingLevel
     });
     await courseRequest.save();
+    console.log('Course request saved:', courseRequest);
 
     // Generate course outline using ChatGPT
     const courseOutline = await generateCourseOutline(jobDescription, technologyStack, duration, trainingLevel);
+    console.log('Course outline generated:', courseOutline);
 
     // Save the generated course
     const generatedCourse = new GeneratedCourse({
@@ -53,6 +60,9 @@ exports.generateCourseOutline = async (req, res) => {
     // Update the course request with the generated course ID
     courseRequest.generatedCourse = generatedCourse._id;
     await courseRequest.save();
+
+    console.log('Course outline generated successfully');
+    console.log(generatedCourse);
 
     // Send the course outline to the client
     res.json(generatedCourse);

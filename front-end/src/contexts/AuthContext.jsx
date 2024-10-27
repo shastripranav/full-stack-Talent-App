@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }) => {
       });
       setUser(response.data.user);
       localStorage.setItem('user', JSON.stringify(response.data.user));
+      fetchUserDetails();
       return response.data.user;
     } catch (error) {
       console.error('Error updating user details:', error);

@@ -1,0 +1,183 @@
+.course-outline-generator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  max-width: 600px;
+  background-color: #e6f7ff;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  z-index: 1000;
+}
+
+.course-outline-generator h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.course-outline-generator form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}
+
+.course-outline-generator input,
+.course-outline-generator textarea,
+.course-outline-generator select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.course-outline-generator textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.radio-group {
+  display: flex;
+  gap: 15px;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.course-outline-generator button {
+  padding: 10px 15px;
+  background-color: #4A3CDB;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.course-outline-generator button:hover:not(:disabled) {
+  background-color: #3c31b0;
+}
+
+.course-outline-generator button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: red;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #333;
+}
+
+.close-button:hover {
+  color: #4A3CDB;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .course-outline-display,
+  .course-outline-display * {
+    visibility: visible;
+  }
+  .course-outline-display {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background-color: white;
+  }
+  .CloseButton,
+  .PrintButton {
+    display: none;
+  }
+}
+
+/* Add these styles for better readability when printing */
+@page {
+  size: A4;
+  margin: 2cm;
+}
+
+@media print {
+  .course-outline-display {
+    font-size: 12pt;
+    line-height: 1.3;
+  }
+  h1 {
+    font-size: 18pt;
+    margin-bottom: 0.5cm;
+  }
+  h2 {
+    font-size: 16pt;
+    margin-top: 1cm;
+    margin-bottom: 0.3cm;
+  }
+  h3 {
+    font-size: 14pt;
+    margin-top: 0.8cm;
+    margin-bottom: 0.2cm;
+  }
+  h4, h5 {
+    font-size: 12pt;
+    margin-top: 0.5cm;
+    margin-bottom: 0.2cm;
+  }
+  p, ul, ol {
+    margin-bottom: 0.3cm;
+  }
+}
+
+.floating-frame {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  max-width: 600px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  z-index: 1000;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #333;
+}

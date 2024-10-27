@@ -5,7 +5,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import AssessmentQuestions from './AssessmentQuestions';
 import VoiceAssistant from './VoiceAssistant';
-import api from '../api'; // Import the api instance
+import CourseOutlineGenerator from './CourseOutlineGenerator';
+import CourseOutlineDisplay from './CourseOutlineDisplay';
+import api from '../api';
 import './Dashboard.css';
 import styled from 'styled-components';
 
@@ -20,6 +22,19 @@ const Dashboard = () => {
   const [showChatOptions, setShowChatOptions] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [activityCollapsed, setActivityCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth <= 768);
+  const [showCourseGenerator, setShowCourseGenerator] = useState(false);
+  const [courseOutline, setCourseOutline] = useState(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setSidebarCollapsed(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -82,9 +97,9 @@ const Dashboard = () => {
   const handleHomeClick = () => {
     setShowHome(true);
     setShowVoiceAssistant(false);
-    if (user?.assessmentsTaken?.length > 0) {
-      setSelectedAssessment(user.assessmentsTaken[user.assessmentsTaken.length - 1]);
-    }
+    setShowCourseGenerator(false);
+    setCourseOutline(null);
+    setSelectedAssessment(null);
   };
 
   const fetchChatHistory = async () => {
@@ -116,8 +131,11 @@ const Dashboard = () => {
     if (option === 'new') {
       setChatHistory([]);
       setShowVoiceAssistant(true);
+      setShowHome(false);
     } else if (option === 'reload') {
       fetchChatHistory();
+      setShowVoiceAssistant(true);
+      setShowHome(false);
     }
   };
 
@@ -151,6 +169,7 @@ const Dashboard = () => {
           <PolarAngleAxis dataKey="competency" />
           <PolarRadiusAxis angle={30} domain={[0, 1]} />
           <Radar name="Score" dataKey="score" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+          <Tooltip formatter={(value) => value.toFixed(2)} />
           <Legend />
         </RadarChart>
       </ResponsiveContainer>
@@ -176,18 +195,66 @@ const Dashboard = () => {
     );
   };
 
-  const handleRefreshAssessments = async () => {
-    try {
-      await refreshUserData();
-    } catch (error) {
-      console.error('Error refreshing user data:', error);
-      // Optionally, you can set an error state here to display to the user
+  const renderCharts = () => {
+    if (!selectedAssessment || !selectedAssessment.result) return null;
+
+    return (
+      <section className="ChartSection">
+        <h2 className="SectionTitle">Assessment Results</h2>
+        <div className="ChartContainer">
+          <h3>Performance by Bloom's Taxonomy</h3>
+          {renderBarChart()}
+        </div>
+        <div className="ChartContainer">
+          <h3>Competency Scores</h3>
+          {renderRadarChart()}
+        </div>
+      </section>
+    );
+  };
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
+  const toggleChatOptions = () => {
+    setShowChatOptions(!showChatOptions);
+  };
+
+  const handleGenerateCourseOutline = () => {
+    setShowCourseGenerator(true);
+  };
+
+  const handleCourseOutlineGenerated = (outline) => {
+    setCourseOutline(outline);
+    setShowCourseGenerator(false);
+  };
+
+  const handleNavigationClick = (destination) => {
+    if (courseOutline) {
+      const confirmNavigation = window.confirm("You are moving away from the generated course outline. Do you confirm?");
+      if (!confirmNavigation) {
+        return;
+      }
     }
+    // Handle navigation logic here
+    // For example:
+    if (destination === 'home') {
+      setShowHome(true);
+      setShowVoiceAssistant(false);
+    } else if (destination === 'voiceAssistant') {
+      setShowVoiceAssistant(true);
+      setShowHome(false);
+    }
+    setCourseOutline(null);
   };
 
   return (
     <div className="DashboardContainer">
-      <div className="Sidebar">
+      <button className="SidebarToggle" onClick={toggleSidebar}>
+        {sidebarCollapsed ? '☰' : '✕'}
+      </button>
+      <div className={`Sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="ProfileSection">
           {profileImage ? (
             <img className="ProfileImage" src={profileImage} alt="Profile" />
@@ -202,8 +269,8 @@ const Dashboard = () => {
         </div>
         <nav className="NavMenu">
           <button className={`NavItem ${showHome ? 'active' : ''}`} onClick={handleHomeClick}>Home</button>
-          <RefreshIcon onClick={handleRefreshAssessments}>Refresh Dashboard</RefreshIcon>
-          <Link className="NavItem" to="/assessment">New Assessment</Link>
+          <button className="NavItem" onClick={() => navigate('/assessment')}>New Assessment</button>
+          <button className="NavItem" onClick={handleGenerateCourseOutline}>Generate Course Outline</button>
           <div className="AssessmentSelectorLabel">
             Past Assessments:
           </div>
@@ -220,28 +287,46 @@ const Dashboard = () => {
                 </option>
               ))}
             </select>
-            <button 
-              className="GoButton"
-              onClick={handleAssessmentSelect}
-              disabled={!selectedAssessmentId}
-            >
-              Go
-            </button>
           </div>
-          <button className="VoiceAssistantButton" onClick={() => setShowChatOptions(true)}>
-            <span className="BotIcon">🤖</span>
-            Tech Voice Assistant
+          <button 
+            className="GoButton"
+            onClick={handleAssessmentSelect}
+            disabled={!selectedAssessmentId}
+          >
+            Go
           </button>
+          <div className="VoiceAssistantContainer">
+            <button className="VoiceAssistantButton" onClick={toggleChatOptions}>
+              <span className="BotIcon">🤖</span>
+              Tech Voice Assistant
+            </button>
+            <div className={`ChatOptions ${showChatOptions ? 'show' : ''}`}>
+              <button className="ChatOptionButton" onClick={() => handleChatOptionSelect('new')}>New Chat</button>
+              <button className="ChatOptionButton" onClick={() => handleChatOptionSelect('reload')}>Reload Chat</button>
+            </div>
+          </div>
           <button className="LogoutButton" onClick={handleLogout}>Logout</button>
         </nav>
       </div>
-      <main className="MainContent">
-        <header className="Header">
-          <h1 className="Greeting">Hello, {user?.name || 'User'}</h1>
-          <p className="SubGreeting">Welcome to your dashboard</p>
-        </header>
-        {!showVoiceAssistant ? (
+      <main className={`MainContent ${sidebarCollapsed ? 'expanded' : ''}`}>
+        {showCourseGenerator ? (
+          <CourseOutlineGenerator 
+            onOutlineGenerated={handleCourseOutlineGenerated} 
+            onClose={() => setShowCourseGenerator(false)}
+          />
+        ) : courseOutline ? (
+          <CourseOutlineDisplay 
+            courseOutline={courseOutline} 
+            onClose={() => setCourseOutline(null)}
+          />
+        ) : showVoiceAssistant ? (
+          <VoiceAssistant onClose={() => setShowVoiceAssistant(false)} chatHistory={chatHistory} />
+        ) : (
           <>
+            <header className="Header">
+              <h1 className="Greeting">Hello, {user?.name || 'User'}</h1>
+              <p className="SubGreeting">Welcome to your dashboard</p>
+            </header>
             <section className="ActivitySection">
               <h2 className="SectionTitle">
                 Recent Activity
@@ -249,7 +334,7 @@ const Dashboard = () => {
                   className={`CollapseIcon ${activityCollapsed ? 'collapsed' : ''}`} 
                   onClick={() => setActivityCollapsed(!activityCollapsed)}
                 >
-                  ▼
+                  {activityCollapsed ? '▶' : '▼'}
                 </span>
               </h2>
               {!activityCollapsed && (
@@ -262,20 +347,12 @@ const Dashboard = () => {
               )}
             </section>
             {renderResultSummary()}
-            <section className="ChartSection">
-              <h2 className="SectionTitle">Assessment Results</h2>
-              <div className="ChartContainer">
-                <h3>Performance by Bloom's Taxonomy</h3>
-                {renderBarChart()}
-              </div>
-              <div className="ChartContainer">
-                <h3>Competency Scores</h3>
-                {renderRadarChart()}
-              </div>
-            </section>
-            <button className="AdvancedButton" onClick={() => setShowQuestions(!showQuestions)}>
-              {showQuestions ? 'Hide Questions' : 'Show Questions'}
-            </button>
+            {renderCharts()}
+            {selectedAssessment && (
+              <button className="AdvancedButton" onClick={() => setShowQuestions(!showQuestions)}>
+                {showQuestions ? 'Hide Questions' : 'Show Questions'}
+              </button>
+            )}
             {showQuestions && selectedAssessment && (
               <div className="FloatingFrame">
                 <button className="CloseButton" onClick={() => setShowQuestions(false)}>&times;</button>
@@ -283,17 +360,8 @@ const Dashboard = () => {
               </div>
             )}
           </>
-        ) : (
-          <VoiceAssistant onClose={() => setShowVoiceAssistant(false)} chatHistory={chatHistory} />
         )}
       </main>
-      {showChatOptions && (
-        <div className="ChatOptionsModal">
-          <button className="ChatOptionButton" onClick={() => handleChatOptionSelect('new')}>New Chat</button>
-          <button className="ChatOptionButton" onClick={() => handleChatOptionSelect('reload')}>Reload Chat</button>
-          <button className="CloseButton" onClick={() => setShowChatOptions(false)}>&times;</button>
-        </div>
-      )}
     </div>
   );
 };

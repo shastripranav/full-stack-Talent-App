@@ -15,16 +15,18 @@ const courseRequestSchema = new mongoose.Schema({
     required: true
   },
   duration: {
-    type: Number,
+    type: String,
     required: true
   },
   trainingLevel: {
     type: String,
-    required: true
+    required: true,
+    enum: ['Beginner', 'Mid Management', 'C-Suite']
   },
   generatedCourse: {
-    type: mongoose.Schema.Types.Mixed,
-    required: true
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'GeneratedCourse',
+    required: false
   },
   createdAt: {
     type: Date,

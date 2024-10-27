@@ -66,17 +66,22 @@ exports.generateCourseOutline = async (jobDescription, technologyStack, duration
     Generate a detailed training course outline based on the following information:
     - Job Description: ${jobDescription}
     - Technology Stack: ${technologyStack}
-    - Duration: ${duration} weeks
-    - Training Level: ${trainingLevel}
+    - Duration: ${duration} ( this might be in weeks or days. If it is in weeks, you can cover all 5 days of those weeks & spread the topics accordingly. But if the request is in days then be explicit about the number of days. For example if the request is of 7 days, then Generate outline for 5 days in week 1 & then remaining 2 days in week 2)
+    - Training Level: ${trainingLevel} (Beginner, Mid Management, or C-Suite)
+
+    Tailor the content and complexity based on the training level:
+    - For Beginner: Focus on foundational concepts and hands-on skills.
+    - For Mid Management: Include both technical and managerial aspects, with emphasis on project management and team leadership.
+    - For C-Suite: Concentrate on high-level strategic implications, business impact, and decision-making related to the technology.
 
     The course outline should include:
     - Course Title
     - Course Overview
     - Learning Objectives (as an array)
     - Technologies Covered (as an array)
-    - Weekly breakdown (for each week):
-      - Daily topics (for 5 days each week)
-      - Daily activities (for each day)
+    - Weekly breakdown (for each week & assuming 5 days in a week):
+      - Daily topics (enough granular topics to cover 4 hrs each day)
+      - Daily activities (for 1-2 hrs each day)
       - Daily learning outcomes (for each day)
 
     The training occurs 5 days a week, 4 hours each day.
@@ -100,6 +105,14 @@ exports.generateCourseOutline = async (jobDescription, technologyStack, duration
         }
       ]
     }
+      Make sure to give only the json object and nothing else.
+
+      Ensure that:
+    1. The course content builds progressively over the duration.
+    2. Each day includes at least 5 detailed topics, 3 specific learning objectives, and 2 hands-on activities.
+    3. The content is tailored to the ${trainingLevel} level.
+    4. The course aligns closely with the provided job description and the ${technologyStack} focus.
+    5. The structure is detailed, modular, and follows the exact format provided above.
   `;
 
   try {
@@ -112,9 +125,10 @@ exports.generateCourseOutline = async (jobDescription, technologyStack, duration
         'Content-Type': 'application/json',
       },
     });
-    
+    console.log('Course outline generated'+response.data.choices[0].message.content);
     const content = response.data.choices[0].message.content;
-    return JSON.parse(content);
+    const cleanedResponseText = content.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleanedResponseText);
   } catch (error) {
     console.error('Error calling OpenAI API:', error.response ? error.response.data : error.message);
     throw error;
