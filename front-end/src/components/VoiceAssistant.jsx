@@ -3,6 +3,8 @@ import styled from 'styled-components';
 import { AuthContext } from '../contexts/AuthContext';
 import api from '../api';
 import marked from 'marked';
+import { transcribeAudio } from '../TestVoiceUtil';
+import Buffer from 'buffer';
 
 const VoiceAssistant = ({ onClose, chatHistory }) => {
   const { user } = useContext(AuthContext);
@@ -132,28 +134,35 @@ const VoiceAssistant = ({ onClose, chatHistory }) => {
     if ('MediaRecorder' in window) {
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-          const mediaRecorder = new MediaRecorder(stream);
+          const mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'audio/webm'  // Specify the MIME type
+          });
           mediaRecorderRef.current = mediaRecorder;
-          audioChunksRef.current = [];
+          const audioChunks = [];
 
           mediaRecorder.addEventListener("dataavailable", event => {
-            audioChunksRef.current.push(event.data);
+            audioChunks.push(event.data);
           });
 
           mediaRecorder.addEventListener("stop", async () => {
-            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
             setState(prev => ({ ...prev, isProcessing: true }));
 
             try {
-              const arrayBuffer = await audioBlob.arrayBuffer();
-              const buffer = Buffer.from(arrayBuffer);
-
+              // Create FormData object
+              const formData = new FormData();
+              // Append the audio blob as a file
+              formData.append('audio', audioBlob, 'audio.wav');
+              console.log("audioBlob");
+              console.log(formData.get('audio'));
+              // Send the FormData
               const response = await api.post('/voiceassistant/process', 
-                buffer,
+                formData,
                 {
                   headers: {
                     'x-auth-token': localStorage.getItem('token'),
-                    'Content-Type': 'application/octet-stream'
+                    'enctype': 'multipart/form-data'
+                    // Don't set Content-Type header - axios will set it automatically with boundary
                   }
                 }
               );

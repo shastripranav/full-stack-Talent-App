@@ -1,28 +1,48 @@
-const Groq = require("groq-sdk");
+const { Groq } = require('groq-sdk');
+const fs = require('fs');
+const FormData = require('form-data');
 
-// Initialize the Groq client
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
-});
-
-exports.transcribeAudio = async (audioBuffer) => {
+exports.transcribeAudio = async (filePath) => {
   try {
-    // Create a File object from the audioBuffer
-    const file = new File([audioBuffer], "audio.wav", { type: "audio/wav" });
-
-    // Create a transcription job
-    const transcriptions = await groq.audio.transcriptions.create({
-      file: file,
-      model: "whisper-large-v3-turbo",
-      prompt: "Transcribe the following audio",
-      response_format: "json",
-      temperature: 0.0,
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
     });
 
-    // Return the transcribed text
-    return transcriptions.text;
+    // Check if file exists and is readable
+    await fs.promises.access(filePath, fs.constants.R_OK);
+    
+    // Get file stats for logging
+    const stats = await fs.promises.stat(filePath);
+    console.log('Processing file:', {
+      path: filePath,
+      size: stats.size,
+      isFile: stats.isFile()
+    });
+
+    // Create a ReadStream for the audio file
+    const fileStream = fs.createReadStream(filePath);
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('file', fileStream);
+    formData.append('model', 'whisper-large-v3-turbo');
+
+    // Make the transcription request
+    const response = await groq.audio.transcriptions.create({
+      file: fs.createReadStream(filePath),
+      model: 'whisper-large-v3-turbo'
+    });
+
+    console.log('Transcription response:', response); // Debug log
+
+    return response.text;
+
   } catch (error) {
-    console.error('Error transcribing audio:', error);
+    console.error('Transcription error details:', {
+      message: error.message,
+      status: error.status,
+      error: error.error
+    });
     throw new Error('Failed to transcribe audio');
   }
-};
+}

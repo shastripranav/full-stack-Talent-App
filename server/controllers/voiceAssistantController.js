@@ -2,6 +2,8 @@ const { getGroqResponse } = require('../utils/groq');
 const { textToSpeech } = require('../utils/deepgram');
 const { transcribeAudio } = require('../utils/transcription');
 const VoiceChat = require('../models/VoiceChat');
+const fs = require('fs').promises;
+const path = require('path');
 
 // In-memory store to track greeting state
 const userGreetingState = {};
@@ -41,21 +43,37 @@ exports.getInitialGreeting = async (req, res) => {
   }
 };
 
-// Modified process input function
+// Modified process input function for disk storage
 exports.processInput = async (req, res) => {
+  let filePath = null;
   let responseAlreadySent = false;
   
   try {
-    console.log('Request body type:', typeof req.body);
-    console.log('Is buffer:', Buffer.isBuffer(req.body));
-    
-    if (!req.body || !Buffer.isBuffer(req.body)) {
+    if (!req.file) {
       responseAlreadySent = true;
-      return res.status(400).json({ error: 'Audio input is required as raw buffer' });
+      return res.status(400).json({ error: 'No audio file provided' });
     }
 
+    filePath = req.file.path;
+    console.log('Processing audio file:', {
+      originalName: req.file.originalname,
+      path: filePath,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    });
+
+    // Check if file exists and is readable
+    await fs.access(filePath, fs.constants.R_OK);
+    
+    // Get file stats
+    const stats = await fs.stat(filePath);
+    console.log('File stats:', {
+      size: stats.size,
+      isFile: stats.isFile()
+    });
+
     // 1. Transcribe user's audio to text
-    const userText = await transcribeAudio(req.body);
+    const userText = await transcribeAudio(filePath);
     
     if (!userText) {
       responseAlreadySent = true;
@@ -71,10 +89,9 @@ exports.processInput = async (req, res) => {
     // 4. Save the interaction with proper user ID
     await saveInteraction(req.user.id, userText, botResponse, false);
 
-    // Check if response was already sent
+    // Send complete response back to client
     if (!responseAlreadySent) {
       responseAlreadySent = true;
-      // Send complete response back to client
       res.json({
         userText: userText,
         botText: botResponse,
@@ -82,11 +99,26 @@ exports.processInput = async (req, res) => {
         isIntroduction: false
       });
     }
+
   } catch (error) {
+    console.error('Error processing voice assistant input:', error);
     if (!responseAlreadySent) {
       responseAlreadySent = true;
-      console.error('Error processing voice assistant input:', error);
-      res.status(500).json({ error: 'An error occurred while processing your request' });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to process audio input',
+        details: error.message
+      });
+    }
+  } finally {
+    // Clean up: Delete the temporary file
+    if (filePath) {
+      try {
+        await fs.unlink(filePath);
+        console.log('Temporary audio file deleted:', filePath);
+      } catch (unlinkError) {
+        console.error('Error deleting temporary file:', unlinkError);
+      }
     }
   }
 };
