@@ -8,6 +8,7 @@ const swaggerDocument = require('./swagger.json');
 const cors = require('cors');
 const voiceAssistantRoutes = require('./routes/voiceAssistant');
 const courseRoutes = require('./routes/course');
+const resumeRoutes = require('./routes/resume');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -46,6 +47,11 @@ const checkAndCreateCollections = async () => {
       console.log('Generated Courses collection created');
     }
 
+    if (!collectionNames.includes('resumeanalyses')) {
+      await mongoose.connection.createCollection('resumeanalyses');
+      console.log('Resume Analyses collection created');
+    }
+
     console.log('All necessary collections are present');
   } catch (error) {
     console.error('Error checking/creating collections:', error);
@@ -73,6 +79,7 @@ app.use('/api', require('./routes/auth'));
 app.use('/api/assessments', require('./routes/assessments'));
 app.use('/api/voiceassistant', voiceAssistantRoutes);
 app.use('/api/course', courseRoutes);
+app.use('/api/resume', resumeRoutes);
 
 // Swagger API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

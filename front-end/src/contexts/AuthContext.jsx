@@ -42,8 +42,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const refreshUserData = async () => {
-    await fetchUserDetails();
+    if (refreshUserData.isLoading) {
+      return;
+    }
+    
+    try {
+      refreshUserData.isLoading = true;
+      await fetchUserDetails();
+    } finally {
+      refreshUserData.isLoading = false;
+    }
   };
+  refreshUserData.isLoading = false;
 
   const updateUser = async (updatedDetails) => {
     try {
@@ -61,7 +71,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, updateUser, refreshUserData }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, updateUser,fetchUserDetails, refreshUserData }}>
       {children}
     </AuthContext.Provider>
   );

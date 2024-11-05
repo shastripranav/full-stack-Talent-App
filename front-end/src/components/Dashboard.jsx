@@ -7,6 +7,7 @@ import AssessmentQuestions from './AssessmentQuestions';
 import VoiceAssistant from './VoiceAssistant';
 import CourseOutlineGenerator from './CourseOutlineGenerator';
 import CourseOutlineDisplay from './CourseOutlineDisplay';
+import ResumeAnalyser from './ResumeAnalyser';
 import api from '../api';
 import './Dashboard.css';
 import styled from 'styled-components';
@@ -25,6 +26,7 @@ const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth <= 768);
   const [showCourseGenerator, setShowCourseGenerator] = useState(false);
   const [courseOutline, setCourseOutline] = useState(null);
+  const [showResumeAnalyser, setShowResumeAnalyser] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -42,6 +44,7 @@ const Dashboard = () => {
     const fetchData = async () => {
       if (location.state?.showLatestAssessment) {
         await refreshUserData();
+        location.state.showLatestAssessment = false;
       }
       if (user?.assessmentsTaken?.length > 0) {
         setSelectedAssessment(user.assessmentsTaken[user.assessmentsTaken.length - 1]);
@@ -49,7 +52,7 @@ const Dashboard = () => {
     };
 
     fetchData();
-  }, [user, location.state, refreshUserData]);
+  });
 
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
@@ -98,6 +101,7 @@ const Dashboard = () => {
     setShowHome(true);
     setShowVoiceAssistant(false);
     setShowCourseGenerator(false);
+    setShowResumeAnalyser(false);
     setCourseOutline(null);
     setSelectedAssessment(null);
   };
@@ -237,14 +241,19 @@ const Dashboard = () => {
         return;
       }
     }
-    // Handle navigation logic here
-    // For example:
+    
     if (destination === 'home') {
-      setShowHome(true);
-      setShowVoiceAssistant(false);
+      handleHomeClick();
     } else if (destination === 'voiceAssistant') {
       setShowVoiceAssistant(true);
       setShowHome(false);
+      setShowResumeAnalyser(false);
+      setShowCourseGenerator(false);
+    } else if (destination === 'resumeAnalyser') {
+      setShowResumeAnalyser(true);
+      setShowHome(false);
+      setShowVoiceAssistant(false);
+      setShowCourseGenerator(false);
     }
     setCourseOutline(null);
   };
@@ -270,6 +279,12 @@ const Dashboard = () => {
         <nav className="NavMenu">
           <button className={`NavItem ${showHome ? 'active' : ''}`} onClick={handleHomeClick}>Home</button>
           <button className="NavItem" onClick={() => navigate('/assessment')}>New Assessment</button>
+          <button 
+            className="NavItem" 
+            onClick={() => handleNavigationClick('resumeAnalyser')}
+          >
+            Resume Analysis
+          </button>
           <button className="NavItem" onClick={handleGenerateCourseOutline}>Generate Course Outline</button>
           <div className="AssessmentSelectorLabel">
             Past Assessments:
@@ -321,6 +336,11 @@ const Dashboard = () => {
           />
         ) : showVoiceAssistant ? (
           <VoiceAssistant onClose={() => setShowVoiceAssistant(false)} chatHistory={chatHistory} />
+        ) : showResumeAnalyser ? (
+          <ResumeAnalyser onClose={() => {
+            setShowResumeAnalyser(false);
+            setShowHome(true);
+          }} />
         ) : (
           <>
             <header className="Header">

@@ -29,7 +29,7 @@ exports.generateAssessmentQuestions = async (technology, level) => {
   ${competencies.join(', ')}
 
   Format the response as a JSON array of objects, each containing: 
-  id, text, options (array of 4 choices), correctAnswer(Choice in the Number form between 1-4), difficulty (easy, medium, hard), bloomsCategory, and competency.`;
+  id, text, options (array of 4 choices, make sure  not to add option no while giving the options, just the option text), correctAnswer(Choice in the Number form between 1-4), difficulty (easy, medium, hard), bloomsCategory, and competency.`;
 
   try {
     const response = await axios.post('https://api.openai.com/v1/chat/completions', {
@@ -133,4 +133,136 @@ exports.generateCourseOutline = async (jobDescription, technologyStack, duration
     console.error('Error calling OpenAI API:', error.response ? error.response.data : error.message);
     throw error;
   }
+};
+
+exports.analyzeResumeWithGPT = async (resumeText) => {
+  if (!OPENAI_API_KEY) {
+    console.error('OpenAI API key is not set. Please check your .env file.');
+    throw new Error('OpenAI API key is not set');
+  }
+  const prompt = `
+        Analyze the following resume and provide a detailed analysis in the following structured format. Be specific and detailed in your analysis:
+
+        1. Provide candidate name & a concise professional summary (4-5 sentences)
+        2. Extract and categorize skills into:
+           - Technical Skills
+           - Non-Technical Skills
+           - Certifications
+        3. Detail work experience including company, position, duration, key responsibilities, and achievements
+        4. List educational background with degrees, institutions, years, and any academic achievements
+        5. Identify and describe key projects with:
+           - Project name
+           - Detailed description
+           - Technologies used
+           - Key highlights
+        6. List key professional strengths (minimum 5)
+        7. Assess overall competencies:
+           - Technical competencies with proficiency levels (Expert/Intermediate/Beginner)
+           - Non-technical competencies with proficiency levels
+        8. Top 4 tech skills
+        9. Calculate match scores (0-100):
+           - Skills alignment score
+           - Project alignment score
+           - Overall match score
+        10. Suggest 3 future roles with:
+           - Role title
+           - Reason for suggestion
+           - Required skills
+           - Current skill gaps
+
+        Resume Text:
+        ${resumeText}
+        
+        Provide the analysis in an exact structured JSON format matching the following schema:
+        {
+            "summary":{
+                "candidateName" : "string",
+                "professionalSummary" : "string"
+                  },
+            "skills": {
+                "technical": ["skill1", "skill2"],
+                "nonTechnical": ["skill1", "skill2"],
+                "certifications": ["cert1", "cert2"]
+            },
+            "workExperience": [{
+                "company": "string",
+                "position": "string",
+                "duration": "string",
+                "responsibilities": ["resp1", "resp2"],
+                "achievements": ["achievement1", "achievement2"]
+            }],
+            "education": [{
+                "degree": "string",
+                "field": "string",
+                "institution": "string",
+                "year": number,
+                "achievements": ["achievement1", "achievement2"]
+            }],
+            "projects": [{
+                "name": "string",
+                "description": "string",
+                "technologies": ["tech1", "tech2"],
+                "highlights": ["highlight1", "highlight2"]
+            }],
+            "strengths": ["strength1", "strength2"],
+            "overallCompetencies": {
+                "technical": [{"skill": "string", "proficiencyLevel": "string"}],
+                "nonTechnical": [{"skill": "string", "proficiencyLevel": "string"}]
+            },
+            "top4Skills" {
+            [{"skill1" :"string","proficiencyLevel": "string"}]
+            }
+            "matchScore": {
+                "skillsAlignment": number,
+                "projectAlignment": number,
+                "overallScore": number
+            },
+            "futureRoleSuggestions": [{
+                "role": "string",
+                "reason": "string",
+                "requiredSkills": ["skill1", "skill2"],
+                "skillGaps": ["gap1", "gap2"]
+            }]
+        }`;
+
+  try {
+    const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0,
+    }, {
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const content = response.data.choices[0].message.content;
+    const cleanedResponseText = content.replace(/```json|```/g, '').trim();
+    console.log(cleanedResponseText);
+    // Parse the response to ensure it's valid JSON
+    const analysis = JSON.parse(cleanedResponseText);
+
+    // Validate the required fields
+    const requiredFields = ['summary', 'skills', 'workExperience', 
+                          'education', 'projects','strengths', 'overallCompetencies', 'matchScore','futureRoleSuggestions'];
+    
+    for (const field of requiredFields) {
+      if (!analysis[field]) {
+        throw new Error(`Missing required field: ${field}`);
+      }
+    }
+
+    return analysis;
+
+  } catch (error) {
+    console.error('Error in resume analysis:', error.response ? error.response.data : error.message);
+    throw new Error('Failed to analyze resume with GPT');
+  }
+};
+
+// Export all functions
+module.exports = {
+  generateAssessmentQuestions: exports.generateAssessmentQuestions,
+  generateCourseOutline: exports.generateCourseOutline,
+  analyzeResumeWithGPT: exports.analyzeResumeWithGPT
 };
