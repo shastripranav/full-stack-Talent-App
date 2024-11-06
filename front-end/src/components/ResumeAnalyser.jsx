@@ -30,44 +30,141 @@ const ResumeAnalyser = ({ onClose }) => {
   });
 
   const handlePrint = () => {
-    const printContent = document.querySelector('.printable-content');
-    const printWindow = window.open('', '', 'height=600,width=800');
-    
+    const printContent = document.querySelector('.analysis-display');
+    if (!printContent) return;
+
+    // Create a clone of the content to modify
+    const contentClone = printContent.cloneNode(true);
+
+    // Remove the buttons from the clone
+    const headerButtons = contentClone.querySelector('.header-buttons');
+    if (headerButtons) {
+      headerButtons.remove();
+    }
+
+    // Create print window
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Please allow pop-ups to print the analysis');
+      return;
+    }
+
+    // Write the print content
     printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
         <head>
-          <title>Resume Analysis Report</title>
+          <title>Resume Analysis - ${analysis.summary.candidateName}</title>
           <style>
-            ${document.querySelector('style').innerText}
-            body { 
-              padding: 20px;
+            body {
               font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              padding: 20px;
+              max-width: 1000px;
+              margin: 0 auto;
             }
-            .section { margin-bottom: 20px; }
-            h1, h2, h3, h4 { color: #333; }
-            .skill-tag, .role-tag {
+            .analysis-display {
+              background: white;
+              padding: 20px;
+            }
+            .candidate-name {
+              font-size: 24px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 20px;
+            }
+            .top-highlights {
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 8px;
+              margin-bottom: 20px;
+            }
+            .skill-tag {
               display: inline-block;
               padding: 5px 10px;
-              margin: 5px;
               border-radius: 15px;
-              background: #f0f0f0;
+              margin: 5px;
+              font-size: 14px;
             }
-            .proficiency-expert { background: #4CAF50; color: white; }
-            .proficiency-intermediate { background: #2196F3; color: white; }
-            .proficiency-beginner { background: #FFC107; }
+            .proficiency-expert {
+              background: #4CAF50;
+              color: white;
+            }
+            .proficiency-intermediate {
+              background: #2196F3;
+              color: white;
+            }
+            .proficiency-beginner {
+              background: #FFC107;
+              color: black;
+            }
+            .role-tag {
+              display: inline-block;
+              padding: 5px 10px;
+              border-radius: 15px;
+              margin: 5px;
+              background: #6c757d;
+              color: white;
+            }
+            section {
+              margin-bottom: 20px;
+              padding: 15px;
+              border: 1px solid #eee;
+              border-radius: 8px;
+            }
+            h4 {
+              color: #2c3e50;
+              border-bottom: 2px solid #f0f0f0;
+              padding-bottom: 10px;
+              margin-bottom: 15px;
+            }
+            ul {
+              margin: 0;
+              padding-left: 20px;
+            }
+            li {
+              margin-bottom: 5px;
+            }
+            .experience-card,
+            .education-card,
+            .project-card,
+            .career-suggestion-card {
+              border: 1px solid #eee;
+              padding: 15px;
+              margin-bottom: 15px;
+              border-radius: 8px;
+            }
+            @media print {
+              body { margin: 0; padding: 20px; }
+              section { break-inside: avoid; }
+              .floating-frame { 
+                position: static;
+                transform: none;
+                box-shadow: none;
+              }
+            }
           </style>
         </head>
         <body>
-          <h1>${analysis.summary.candidateName} - Resume Analysis</h1>
-          ${printContent.innerHTML}
+          ${contentClone.outerHTML}
         </body>
       </html>
     `);
-    
+
     printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+
+    // Wait for content and styles to load
+    printWindow.onload = function() {
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        // Don't close the window immediately to allow for print dialog
+        printWindow.onafterprint = function() {
+          printWindow.close();
+        };
+      }, 500);
+    };
   };
 
   const handleUpload = async () => {

@@ -198,12 +198,13 @@
 }
 
 .analysis-header {
-  position: sticky;
-  top: 0;
-  background: white;
-  z-index: 1001;
-  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
   border-bottom: 2px solid #f0f0f0;
+  margin-bottom: 2rem;
+  position: relative;
 }
 
 .candidate-name {
@@ -319,4 +320,57 @@ section h4 {
 
 .close-btn:hover {
   color: #ff4444;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.skill-category ul {
+  columns: 2;
+  column-gap: 2rem;
+  list-style-position: inside;
+}
+
+.experience-card,
+.education-card,
+.project-card,
+.career-suggestion-card {
+  position: relative;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.experience-card::before,
+.education-card::before,
+.project-card::before,
+.career-suggestion-card::before {
+  content: counter(section);
+  counter-increment: section;
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  width: 24px;
+  height: 24px;
+  background: #2196F3;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.experience-section,
+.education-section,
+.projects-section,
+.career-path-section {
+  counter-reset: section;
 }
